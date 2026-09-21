@@ -1,4 +1,4 @@
-﻿name: Laravel CI
+name: Laravel CI
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
     - name: Install Dependencies
-      run: composer install --no-ansi --no-interaction --no-progress --prefer-dist --optimize-autoloader
+      run: composer install --no-ansi --no-interaction --no-progress --prefer-dist --optimize-autoloader --ignore-platform-reqs
 
     - name: Generate Application Key
       run: php artisan key:generate

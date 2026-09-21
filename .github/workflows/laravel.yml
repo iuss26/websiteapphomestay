@@ -32,13 +32,12 @@ jobs:
     - name: Generate Application Key
       run: php artisan key:generate
 
-    - name: Set Directory Permissions
-      run: chmod -R 777 storage bootstrap/cache
-
-    - name: Create SQLite Database
+    - name: Set Directory & Database Permissions
       run: |
+        chmod -R 777 storage bootstrap/cache
         mkdir -p database
         touch database/database.sqlite
+        chmod -R 777 database
 
     - name: Run Database Migrations
       env:
@@ -47,7 +46,6 @@ jobs:
       run: php artisan migrate --force
 
     - name: Execute Automated Tests
-      env:
-        DB_CONNECTION: sqlite
-        DB_DATABASE: database/database.sqlite
-      run: php artisan test
+      run: |
+        php artisan config:clear
+        php artisan test

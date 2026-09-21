@@ -46,6 +46,11 @@ jobs:
       run: php artisan migrate --force
 
     - name: Execute Automated Tests
-      run: |
-        php artisan config:clear
-        php artisan test
+      env:
+        APP_ENV: testing
+        APP_KEY: base64:8WcyT+Zp5MlGcMjCh0Py0ZqdQMP/DVDU4NVxcEI4EUA=
+        SESSION_DRIVER: array
+        CACHE_STORE: array
+        DB_CONNECTION: sqlite
+        DB_DATABASE: database/database.sqlite
+      run: php artisan test

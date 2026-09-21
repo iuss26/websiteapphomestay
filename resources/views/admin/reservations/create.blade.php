@@ -63,13 +63,17 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Check-In *</label>
-                    <input type="date" name="check_in" required value="{{ date('Y-m-d') }}" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal & Jam Check-In *</label>
+                    <input type="datetime-local" name="check_in" id="check_in_admin" required
+                        value="{{ date('Y-m-d') }}T14:00"
+                        class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-400 mt-1">Default: 14:00. Untuk Transit, pilih jam mulai sewa.</p>
                 </div>
-                
+
                 <div id="checkout_wrapper">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Check-Out *</label>
                     <input type="date" name="check_out" id="check_out" value="{{ date('Y-m-d', strtotime('+1 day')) }}" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-400 mt-1">Jam check-out otomatis 12:00 siang.</p>
                 </div>
 
                 <div>

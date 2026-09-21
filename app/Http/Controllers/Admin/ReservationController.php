@@ -69,15 +69,17 @@ class ReservationController extends Controller
         );
 
         if ($request->tipe_reservasi == 'Transit') {
-            $check_in_dt = Carbon::parse($request->check_in);
+            // check_in sudah berisi datetime lengkap dari input datetime-local
+            $check_in_dt  = Carbon::parse($request->check_in);
             $check_out_dt = $check_in_dt->copy()->addHours(6);
-            $total_harga = $room->harga_transit ?? $room->harga_dasar;
+            $total_harga  = $room->harga_transit ?? $room->harga_dasar;
         } else {
-            $check_in_dt = Carbon::parse($request->check_in)->startOfDay();
-            $check_out_dt = Carbon::parse($request->check_out)->startOfDay();
-            $nights = $check_in_dt->diffInDays($check_out_dt);
+            // check_in berisi datetime (tanggal + jam), checkout tanggal + jam 12:00 otomatis
+            $check_in_dt  = Carbon::parse($request->check_in);
+            $check_out_dt = Carbon::parse($request->check_out)->setTime(12, 0, 0);
+            $nights = (int) $check_in_dt->copy()->startOfDay()->diffInDays($check_out_dt->copy()->startOfDay());
             if ($nights < 1) $nights = 1;
-            $total_harga = $room->harga_dasar * $nights;
+            $total_harga  = $room->harga_dasar * $nights;
         }
 
         if ($request->filled('total_harga_custom') && $request->total_harga_custom > 0) {

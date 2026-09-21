@@ -77,9 +77,30 @@
                         </div>
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2" id="label-checkin">Tanggal Check-in</label>
-                            <input type="text" id="checkin-date" name="checkin" class="w-full border-gray-300 rounded p-3 text-gray-700 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Pilih Check-in">
+                            <input type="text" id="checkin-date" name="checkin_date" class="w-full border-gray-300 rounded p-3 text-gray-700 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Pilih Tanggal Check-in">
                         </div>
-                        <div class="mb-4" id="checkout-container">
+                        <div class="mb-4" id="checkin-time-container">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">⏰ Jam Check-in</label>
+                            <select id="checkin-time" name="checkin_time" class="w-full border-gray-300 rounded p-3 text-gray-700 border focus:border-blue-500 focus:ring-1 outline-none">
+                                <option value="08:00">08:00 — Pagi</option>
+                                <option value="09:00">09:00</option>
+                                <option value="10:00">10:00</option>
+                                <option value="11:00">11:00</option>
+                                <option value="12:00">12:00 — Siang</option>
+                                <option value="13:00">13:00</option>
+                                <option value="14:00" selected>14:00 — (Default Check-in)</option>
+                                <option value="15:00">15:00</option>
+                                <option value="16:00">16:00</option>
+                                <option value="17:00">17:00 — Sore</option>
+                                <option value="18:00">18:00</option>
+                                <option value="19:00">19:00</option>
+                                <option value="20:00">20:00 — Malam</option>
+                                <option value="21:00">21:00</option>
+                                <option value="22:00">22:00</option>
+                            </select>
+                            <p class="text-xs text-gray-400 mt-1">Check-out otomatis pukul 12:00 keesokan harinya.</p>
+                        </div>
+                        <div class="mb-4 hidden" id="checkout-container">
                             <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Check-out</label>
                             <input type="text" id="checkout-date" name="checkout" class="w-full border-gray-300 rounded p-3 text-gray-700 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Pilih Check-out">
                         </div>
@@ -105,79 +126,90 @@
 
 @push('scripts')
 <script>
-    const tipeSelect = document.getElementById('tipe-reservasi');
+    const tipeSelect        = document.getElementById('tipe-reservasi');
+    const checkinTimeContainer = document.getElementById('checkin-time-container');
     const checkoutContainer = document.getElementById('checkout-container');
-    const labelCheckin = document.getElementById('label-checkin');
-    const hargaDisplay = document.getElementById('harga-display');
-    const hargaLabel = document.getElementById('harga-label');
-    const hargaDasar = {{ $room->harga_dasar }};
-    const hargaTransit = {{ $room->harga_transit ?? 0 }};
+    const labelCheckin      = document.getElementById('label-checkin');
+    const hargaDisplay      = document.getElementById('harga-display');
+    const hargaLabel        = document.getElementById('harga-label');
+    const checkinTimeSelect = document.getElementById('checkin-time');
+    const hargaDasar        = {{ $room->harga_dasar }};
+    const hargaTransit      = {{ $room->harga_transit ?? 0 }};
 
+    // Hitung harga dinamis berdasarkan tanggal check-in & check-out
     function calculateDynamicTotal() {
         if (tipeSelect.value === 'Transit') return;
-        
-        const checkinVal = document.getElementById('checkin-date').value;
+        const checkinVal  = document.getElementById('checkin-date').value;
         const checkoutVal = document.getElementById('checkout-date').value;
-        
         if (checkinVal && checkoutVal) {
             const d1 = new Date(checkinVal);
             const d2 = new Date(checkoutVal);
-            const timeDiff = d2.getTime() - d1.getTime();
-            let days = Math.ceil(timeDiff / (1000 * 3600 * 24));
+            let days = Math.round((d2 - d1) / (1000 * 3600 * 24));
             if (isNaN(days) || days < 1) days = 1;
-            
-            const total = hargaDasar * days;
-            hargaDisplay.innerText = 'Rp ' + total.toLocaleString('id-ID');
-            hargaLabel.innerText = 'Total (' + days + ' Malam)';
+            hargaDisplay.innerText = 'Rp ' + (hargaDasar * days).toLocaleString('id-ID');
+            hargaLabel.innerText   = 'Total (' + days + ' Malam)';
         }
     }
 
+    // Flatpickr untuk MENGINAP — date only, checkout hari berikutnya otomatis minimum
     let checkinPicker = flatpickr("#checkin-date", {
         minDate: "today",
         dateFormat: "Y-m-d",
-        onChange: function(selectedDates, dateStr, instance) {
-            checkoutPicker.set('minDate', dateStr);
-            calculateDynamicTotal();
-        }
-    });
-    
-    let checkoutPicker = flatpickr("#checkout-date", {
-        minDate: "today",
-        dateFormat: "Y-m-d",
-        onChange: function(selectedDates, dateStr, instance) {
-            calculateDynamicTotal();
+        onChange: function(selectedDates, dateStr) {
+            if (tipeSelect.value === 'Menginap') {
+                // Set checkout minimum = hari berikutnya dari checkin
+                const nextDay = new Date(selectedDates[0]);
+                nextDay.setDate(nextDay.getDate() + 1);
+                checkoutPicker.set('minDate', nextDay);
+                calculateDynamicTotal();
+            }
         }
     });
 
+    let checkoutPicker = flatpickr("#checkout-date", {
+        minDate: "today",
+        dateFormat: "Y-m-d",
+        onChange: function() { calculateDynamicTotal(); }
+    });
+
+    // Ubah tampilan form sesuai tipe reservasi
     function updateFormMode() {
-        if(tipeSelect.value === 'Transit') {
-            checkoutContainer.style.display = 'none';
-            labelCheckin.innerText = 'Waktu Check-in';
+        if (tipeSelect.value === 'Transit') {
+            // Mode Transit: sembunyikan pilihan jam & checkout, tampilkan datetime picker
+            checkinTimeContainer.classList.add('hidden');
+            checkoutContainer.classList.add('hidden');
+            labelCheckin.innerText = 'Waktu & Jam Check-in (Transit)';
             hargaDisplay.innerText = 'Rp ' + hargaTransit.toLocaleString('id-ID');
-            hargaLabel.innerText = 'Per 6 jam';
-            
-            // Re-init flatpickr to datetime
+            hargaLabel.innerText   = 'Per 6 jam (Lanjut +6 jam otomatis)';
+
+            // Re-init flatpickr dengan datetime (tanggal + jam)
             checkinPicker.destroy();
             checkinPicker = flatpickr("#checkin-date", {
                 enableTime: true,
                 time_24hr: true,
                 minDate: "today",
                 dateFormat: "Y-m-d H:i",
+                minuteIncrement: 60,
+                defaultHour: 8,
             });
         } else {
-            checkoutContainer.style.display = 'block';
+            // Mode Menginap: tampilkan pilih jam check-in & checkout
+            checkinTimeContainer.classList.remove('hidden');
+            checkoutContainer.classList.remove('hidden');
             labelCheckin.innerText = 'Tanggal Check-in';
             hargaDisplay.innerText = 'Rp ' + hargaDasar.toLocaleString('id-ID');
-            hargaLabel.innerText = 'Per malam';
+            hargaLabel.innerText   = 'Per malam';
 
-            // Re-init flatpickr to date only
+            // Re-init flatpickr ke date only
             checkinPicker.destroy();
             checkinPicker = flatpickr("#checkin-date", {
                 enableTime: false,
                 minDate: "today",
                 dateFormat: "Y-m-d",
-                onChange: function(selectedDates, dateStr, instance) {
-                    checkoutPicker.set('minDate', dateStr);
+                onChange: function(selectedDates, dateStr) {
+                    const nextDay = new Date(selectedDates[0]);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkoutPicker.set('minDate', nextDay);
                     calculateDynamicTotal();
                 }
             });
@@ -186,5 +218,8 @@
     }
 
     tipeSelect.addEventListener('change', updateFormMode);
+
+    // Jalankan saat pertama load
+    updateFormMode();
 </script>
 @endpush

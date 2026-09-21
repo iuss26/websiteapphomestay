@@ -205,8 +205,17 @@
                                     <span>Active Stay</span>
                                 </span>
                             @elseif($isUpcoming)
+                                @php
+                                    $diffHours = $now->diffInHours($in, false);
+                                    if ($diffHours > 0 && $diffHours < 24) {
+                                        $diffText = floor($diffHours) . ' jam lagi';
+                                    } else {
+                                        $diffDays = $now->startOfDay()->diffInDays($in->copy()->startOfDay(), false);
+                                        $diffText = $diffDays . ' hari lagi';
+                                    }
+                                @endphp
                                 <span class="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex items-center gap-1 w-fit">
-                                    <span>Upcoming ({{ $in->diffInDays($now->startOfDay()) + 1 }} hr lg)</span>
+                                    <span>Upcoming ({{ $diffText }})</span>
                                 </span>
                             @elseif($res->status == 'Confirmed')
                                 <span class="px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-xs font-bold">Confirmed</span>

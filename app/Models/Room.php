@@ -73,14 +73,12 @@ class Room extends Model
 
     /**
      * Memeriksa apakah kamar tersedia pada rentang waktu check-in dan check-out tertentu.
-     * Menginap harian hanya bisa 1 kali reservasi per tanggal,
-     * KECUALI reservasi Transit (6 Jam) di mana beberapa transit di tanggal yang sama diperbolehkan
-     * selama interval waktunya tidak tumpang tindih (overlap).
+     * Menggunakan strict overlap: A bentrok B hanya jika A.check_in < B.check_out DAN A.check_out > B.check_in
+     * Slot berbatasan tepat (A.check_out == B.check_in) DIIZINKAN → Transit pagi + Menginap siang
      */
     public function isAvailable($checkIn, $checkOut, $excludeReservationId = null)
-
     {
-        $checkInDt = \Carbon\Carbon::parse($checkIn);
+        $checkInDt  = \Carbon\Carbon::parse($checkIn);
         $checkOutDt = \Carbon\Carbon::parse($checkOut);
 
         return !$this->reservations()
@@ -89,6 +87,8 @@ class Room extends Model
                 $query->where('id', '!=', $id);
             })
             ->where(function ($query) use ($checkInDt, $checkOutDt) {
+                // Strict overlap: check_in < checkOutDt DAN check_out > checkInDt
+                // Slot berbatasan (check_out = checkInDt) TIDAK dianggap bentrok
                 $query->where('check_in', '<', $checkOutDt)
                       ->where('check_out', '>', $checkInDt);
             })
